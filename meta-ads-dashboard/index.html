@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meta 廣告連接器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    .glass {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .glass-dark {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .btn-meta {
+      background: linear-gradient(135deg, #1877f2 0%, #0d65d9 100%);
+      box-shadow: 0 10px 40px rgba(24, 119, 242, 0.4);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-meta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 50px rgba(24, 119, 242, 0.5);
+    }
+    
+    .btn-meta:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 24px;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s ease;
+    }
+    
+    .account-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+      border-radius: 16px;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .account-card:hover {
+      border-color: #1877f2;
+      background: linear-gradient(135deg, rgba(24,119,242,0.1) 0%, rgba(24,119,242,0.05) 100%);
+    }
+    
+    .account-card.selected {
+      border-color: #1877f2;
+      background: linear-gradient(135deg, rgba(24,119,242,0.2) 0%, rgba(24,119,242,0.1) 100%);
+      box-shadow: 0 8px 30px rgba(24, 119, 242, 0.3);
+    }
+    
+    .account-card.selected .check-circle {
+      display: flex;
+    }
+    
+    .check-circle {
+      display: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1877f2 0%, #0d65d9 100%);
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .pulse {
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .floating {
+      animation: floating 3s ease-in-out infinite;
+    }
+    
+    @keyframes floating {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .slide-in {
+      animation: slideIn 0.4s ease-out forwards;
+    }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+  <div id="app" class="max-w-2xl mx-auto">
+    
+    <!-- ==================== 頁面 1: 未授權 ==================== -->
+    <div id="page-unauthorized" class="fade-in">
+      <div class="card p-8 md:p-12 text-center mt-12">
+        <div class="floating mb-6">
+          <div class="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-2xl">
+            <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+          </div>
+        </div>
+        
+        <h1 class="text-3xl font-bold gradient-text mb-3">Meta 廣告連接器</h1>
+        <p class="text-gray-500 mb-8 text-lg">連接你的 Meta 廣告帳號，開始查看數據報表</p>
+        
+        <button onclick="startAuth()" class="btn-meta text-white px-10 py-4 rounded-full font-semibold text-lg inline-flex items-center gap-3">
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+          </svg>
+          連接 Meta 帳號
+        </button>
+        
+        <div class="mt-8 flex items-center justify-center gap-6 text-sm text-gray-400">
+          <span class="flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+            安全加密
+          </span>
+          <span class="flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+            僅讀取數據
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 頁面 2: 授權中 ==================== -->
+    <div id="page-connecting" class="hidden fade-in">
+      <div class="card p-8 md:p-12 text-center mt-12">
+        <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center pulse">
+          <svg class="w-10 h-10 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+        <h2 class="text-2xl font-bold gradient-text mb-2">正在連接 Meta...</h2>
+        <p class="text-gray-500">請稍候，正在驗證授權</p>
+      </div>
+    </div>
+
+    <!-- ==================== 頁面 3: 選擇廣告帳號 ==================== -->
+    <div id="page-select-accounts" class="hidden fade-in">
+      <!-- Header -->
+      <div class="glass rounded-2xl p-4 mb-6 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <img id="userAvatar" src="" class="w-12 h-12 rounded-full shadow-lg ring-4 ring-white">
+          <div>
+            <div id="userName" class="font-bold text-white text-lg"></div>
+            <div class="text-white/70 text-sm">選擇要授權的廣告帳號</div>
+          </div>
+        </div>
+        <button onclick="handleDisconnect()" class="px-4 py-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-all text-sm font-medium">
+          登出
+        </button>
+      </div>
+
+      <!-- 帳號選擇 -->
+      <div class="card p-6 md:p-8">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-bold gradient-text">選擇廣告帳號</h2>
+          <span id="selectedCount" class="text-sm text-gray-500">已選擇 0 個</span>
+        </div>
+        
+        <p class="text-gray-600 mb-6">選擇你想授權連接的廣告帳號，之後可以在報表頁面查看這些帳號的數據。</p>
+        
+        <div id="accountList" class="space-y-4 mb-8">
+          <!-- 動態產生 -->
+        </div>
+
+        <div class="flex gap-4">
+          <button onclick="handleDisconnect()" class="flex-1 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition-all">
+            取消
+          </button>
+          <button id="confirmBtn" onclick="confirmAccounts()" disabled class="flex-1 btn-meta text-white py-3 rounded-xl font-semibold disabled:opacity-50">
+            確認授權
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 頁面 4: 授權成功 ==================== -->
+    <div id="page-success" class="hidden fade-in">
+      <div class="card p-8 md:p-12 text-center mt-12">
+        <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-2xl">
+          <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        
+        <h2 class="text-2xl font-bold gradient-text mb-3">授權成功！</h2>
+        <p id="successMessage" class="text-gray-500 mb-8">已成功授權 2 個廣告帳號</p>
+        
+        <button onclick="goToReport()" class="btn-meta text-white px-10 py-4 rounded-full font-semibold text-lg">
+          前往報表頁面
+          <svg class="w-5 h-5 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ========== 假資料 ==========
+    const MOCK_USER = {
+      name: "Robert Yeh",
+      avatar: "https://ui-avatars.com/api/?name=Robert+Yeh&background=667eea&color=fff&size=128&bold=true"
+    };
+
+    const MOCK_ACCOUNTS = [
+      { id: "act_123456789", name: "主廣告帳號", balance: 50000, currency: "TWD", icon: "🚀" },
+      { id: "act_987654321", name: "測試帳號", balance: 5000, currency: "TWD", icon: "🧪" },
+      { id: "act_555555555", name: "品牌推廣帳號", balance: 120000, currency: "TWD", icon: "💎" },
+    ];
+
+    // ========== 狀態管理 ==========
+    let selectedAccounts = new Set();
+
+    // ========== 頁面切換 ==========
+    function showPage(pageId) {
+      ['page-unauthorized', 'page-connecting', 'page-select-accounts', 'page-success'].forEach(id => {
+        document.getElementById(id).classList.toggle('hidden', id !== pageId);
+      });
+    }
+
+    // ========== 授權流程 ==========
+    function startAuth() {
+      showPage('page-connecting');
+      
+      // 模擬 OAuth 流程
+      setTimeout(() => {
+        document.getElementById('userName').textContent = MOCK_USER.name;
+        document.getElementById('userAvatar').src = MOCK_USER.avatar;
+        renderAccountList();
+        showPage('page-select-accounts');
+      }, 1500);
+    }
+
+    function renderAccountList() {
+      const container = document.getElementById('accountList');
+      container.innerHTML = MOCK_ACCOUNTS.map((account, index) => `
+        <div class="account-card p-4 slide-in" style="animation-delay: ${index * 0.1}s" data-id="${account.id}" onclick="toggleAccount('${account.id}')">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl">
+                ${account.icon}
+              </div>
+              <div>
+                <div class="font-bold text-gray-800">${account.name}</div>
+                <div class="text-sm text-gray-500">${account.id}</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-4">
+              <div class="text-right">
+                <div class="text-sm text-gray-500">帳戶餘額</div>
+                <div class="font-bold text-gray-800">$${account.balance.toLocaleString()} ${account.currency}</div>
+              </div>
+              <div class="check-circle">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function toggleAccount(accountId) {
+      const card = document.querySelector(`[data-id="${accountId}"]`);
+      
+      if (selectedAccounts.has(accountId)) {
+        selectedAccounts.delete(accountId);
+        card.classList.remove('selected');
+      } else {
+        selectedAccounts.add(accountId);
+        card.classList.add('selected');
+      }
+      
+      updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+      const count = selectedAccounts.size;
+      document.getElementById('selectedCount').textContent = `已選擇 ${count} 個`;
+      document.getElementById('confirmBtn').disabled = count === 0;
+      document.getElementById('confirmBtn').textContent = count === 0 ? '請選擇至少一個帳號' : `確認授權 ${count} 個帳號`;
+    }
+
+    function confirmAccounts() {
+      // 儲存授權的帳號到 localStorage
+      const accounts = MOCK_ACCOUNTS.filter(a => selectedAccounts.has(a.id));
+      localStorage.setItem('authorizedAccounts', JSON.stringify(accounts));
+      localStorage.setItem('userInfo', JSON.stringify(MOCK_USER));
+      
+      document.getElementById('successMessage').textContent = `已成功授權 ${accounts.length} 個廣告帳號`;
+      showPage('page-success');
+    }
+
+    function goToReport() {
+      // 跳轉到報表頁面
+      window.location.href = 'report.html';
+    }
+
+    function handleDisconnect() {
+      localStorage.removeItem('authorizedAccounts');
+      localStorage.removeItem('userInfo');
+      selectedAccounts.clear();
+      showPage('page-unauthorized');
+    }
+
+    // ========== 初始化 ==========
+    document.addEventListener('DOMContentLoaded', () => {
+      // 檢查是否已授權
+      const authorized = localStorage.getItem('authorizedAccounts');
+      if (authorized) {
+        // 已授權，直接跳轉到報表
+        window.location.href = 'report.html';
+      }
+    });
+  </script>
+</body>
+</html>
