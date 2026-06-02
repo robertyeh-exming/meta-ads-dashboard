@@ -494,7 +494,7 @@
       const user = localStorage.getItem('userInfo');
       
       if (!accounts) {
-        // 沒有授權資料，直接用假資料顯示
+        // 沒有授權資料，跳轉回授權頁面
         authorizedAccounts = [{ id: 'demo', name: 'Demo 帳號', icon: '📊' }];
       } else {
         authorizedAccounts = JSON.parse(accounts);
