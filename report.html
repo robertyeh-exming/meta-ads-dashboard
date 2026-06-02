@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meta 廣告報表</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    
+    body {
+      background: #f8f9fa;
+      min-height: 100vh;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .kpi-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      border-left: 4px solid #4285f4;
+    }
+    
+    .kpi-card.impressions { border-left-color: #4285f4; }
+    .kpi-card.views { border-left-color: #34a853; }
+    .kpi-card.clicks { border-left-color: #fbbc05; }
+    .kpi-card.conversions { border-left-color: #ea4335; }
+    .kpi-card.cost { border-left-color: #9c27b0; }
+    .kpi-card.value { border-left-color: #00bcd4; }
+    
+    .kpi-value {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #202124;
+    }
+    
+    .kpi-label {
+      font-size: 0.75rem;
+      color: #5f6368;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .kpi-change {
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    
+    .kpi-change.positive { color: #34a853; }
+    .kpi-change.negative { color: #ea4335; }
+    
+    .table-header {
+      background: #f8f9fa;
+      font-size: 0.75rem;
+      color: #5f6368;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .table-row:hover {
+      background: #f1f3f4;
+    }
+    
+    .roas-good { color: #34a853; font-weight: 600; }
+    .roas-medium { color: #fbbc05; font-weight: 600; }
+    .roas-bad { color: #ea4335; font-weight: 600; }
+    
+    .chart-container {
+      position: relative;
+      height: 200px;
+    }
+    
+    .account-chip {
+      background: #e8f0fe;
+      border-radius: 20px;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.875rem;
+    }
+    
+    .account-chip:hover {
+      background: #d2e3fc;
+    }
+    
+    .account-chip.active {
+      background: #1a73e8;
+      color: white;
+    }
+    
+    .date-picker {
+      background: white;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+    }
+    
+    .dropdown-arrow {
+      color: #5f6368;
+    }
+    
+    /* 頁籤樣式 */
+    .tab-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .tab-header {
+      display: flex;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .tab-btn {
+      padding: 1rem 1.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #5f6368;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    
+    .tab-btn:hover {
+      color: #202124;
+    }
+    
+    .tab-btn.active {
+      color: #1a73e8;
+    }
+    
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #1a73e8;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    
+    .status-active {
+      background: #e6f4ea;
+      color: #137333;
+    }
+    
+    .format-badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    
+    .format-post { background: #e8f0fe; color: #1a73e8; }
+    .format-image { background: #fce8e6; color: #c5221f; }
+    .format-video { background: #fef7e0; color: #f9ab00; }
+  </style>
+</head>
+<body class="p-4 md:p-6">
+  <div id="app" class="max-w-7xl mx-auto">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-800">Meta 廣告報表</h1>
+        <div class="flex items-center gap-2 mt-1 text-gray-500 text-sm">
+          <span id="dateRangeDisplay">2026年5月22日 - 2026年5月28日</span>
+          <span class="dropdown-arrow">▼</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="goToAuth()" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+          管理帳號
+        </button>
+        <button onclick="handleDisconnect()" class="text-gray-500 hover:text-gray-700 text-sm">
+          登出
+        </button>
+      </div>
+    </div>
+
+    <!-- 帳號切換 -->
+    <div id="accountSwitcher" class="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
+      <span class="text-gray-600 text-sm font-medium whitespace-nowrap">帳號：</span>
+      <div id="accountChips" class="flex gap-2">
+        <!-- 動態產生 -->
+      </div>
+    </div>
+
+    <!-- KPI 總覽 (參考 Looker 格式) -->
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+      <div class="kpi-card impressions">
+        <div class="kpi-label">曝光</div>
+        <div id="kpiImpressions" class="kpi-value">810,933</div>
+        <div id="kpiImpressionsChange" class="kpi-change negative">-6.6%</div>
+      </div>
+      <div class="kpi-card views">
+        <div class="kpi-label">觀看</div>
+        <div id="kpiViews" class="kpi-value">43,495</div>
+        <div id="kpiViewsChange" class="kpi-change">-</div>
+      </div>
+      <div class="kpi-card clicks">
+        <div class="kpi-label">點擊</div>
+        <div id="kpiClicks" class="kpi-value">4,169</div>
+        <div id="kpiClicksChange" class="kpi-change positive">16.6%</div>
+      </div>
+      <div class="kpi-card conversions">
+        <div class="kpi-label">轉換</div>
+        <div id="kpiConversions" class="kpi-value">125</div>
+        <div id="kpiConversionsChange" class="kpi-change">-</div>
+      </div>
+      <div class="kpi-card cost">
+        <div class="kpi-label">費用</div>
+        <div id="kpiCost" class="kpi-value">$125,465</div>
+        <div id="kpiCostChange" class="kpi-change negative">-9.0%</div>
+      </div>
+      <div class="kpi-card value">
+        <div class="kpi-label">轉換價值</div>
+        <div id="kpiValue" class="kpi-value">$507,442</div>
+        <div id="kpiValueChange" class="kpi-change negative">-9.4%</div>
+      </div>
+    </div>
+
+    <!-- 第二排 KPI -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+      <div class="kpi-card">
+        <div class="kpi-label">觀看率</div>
+        <div id="kpiViewRate" class="kpi-value">5.36%</div>
+        <div id="kpiViewRateChange" class="kpi-change negative">-0.5%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">點擊率</div>
+        <div id="kpiCtr" class="kpi-value">0.51%</div>
+        <div id="kpiCtrChange" class="kpi-change positive">+16.6%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">轉換率</div>
+        <div id="kpiConversionRate" class="kpi-value">3.00%</div>
+        <div id="kpiConversionRateChange" class="kpi-change negative">-6.0%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">ROAS</div>
+        <div id="kpiRoas" class="kpi-value">4.04</div>
+        <div id="kpiRoasChange" class="kpi-change negative">-1.5%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">CPM</div>
+        <div id="kpiCpm" class="kpi-value">$154.72</div>
+        <div id="kpiCpmChange" class="kpi-change negative">-4.6%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">CPC</div>
+        <div id="kpiCpc" class="kpi-value">$30.09</div>
+        <div id="kpiCpcChange" class="kpi-change negative">-2.5%</div>
+      </div>
+    </div>
+
+    <!-- 週趨勢圖 -->
+    <div class="card p-4 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-medium text-gray-700">週趨勢</h3>
+        <select class="date-picker text-sm">
+          <option>曝光</option>
+          <option>點擊</option>
+          <option>轉換</option>
+          <option>費用</option>
+        </select>
+      </div>
+      <div class="chart-container">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+
+    <!-- 每日成效表格 -->
+    <div class="card mb-6 overflow-hidden">
+      <div class="p-4 border-b border-gray-100">
+        <h3 class="font-medium text-gray-700">每日成效</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="table-header">
+              <th class="px-4 py-3 text-left">日期</th>
+              <th class="px-4 py-3 text-right">曝光</th>
+              <th class="px-4 py-3 text-right">點擊</th>
+              <th class="px-4 py-3 text-right">點擊率</th>
+              <th class="px-4 py-3 text-right">轉換</th>
+              <th class="px-4 py-3 text-right">轉換率</th>
+              <th class="px-4 py-3 text-right">費用</th>
+              <th class="px-4 py-3 text-right">轉換價值</th>
+              <th class="px-4 py-3 text-right">ROAS</th>
+              <th class="px-4 py-3 text-right">CPM</th>
+              <th class="px-4 py-3 text-right">CPC</th>
+              <th class="px-4 py-3 text-right">CPA</th>
+            </tr>
+          </thead>
+          <tbody id="dailyTable">
+            <!-- 動態產生 -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 頁籤區域：廣告活動 + 素材表現 -->
+    <div class="tab-container overflow-hidden">
+      <div class="tab-header">
+        <button class="tab-btn active" onclick="switchTab('campaign')">廣告活動成效</button>
+        <button class="tab-btn" onclick="switchTab('creative')">素材表現</button>
+      </div>
+      
+      <!-- 頁籤 1：廣告活動成效 -->
+      <div id="tab-campaign" class="tab-content active">
+        <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+          <span class="text-sm text-gray-500">1 - 28 / 28</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="table-header">
+                <th class="px-4 py-3 text-left">廣告活動</th>
+                <th class="px-4 py-3 text-right">曝光</th>
+                <th class="px-4 py-3 text-right">點擊</th>
+                <th class="px-4 py-3 text-right">點擊率</th>
+                <th class="px-4 py-3 text-right">轉換</th>
+                <th class="px-4 py-3 text-right">轉換率</th>
+                <th class="px-4 py-3 text-right">費用</th>
+                <th class="px-4 py-3 text-right">轉換價值</th>
+                <th class="px-4 py-3 text-right">ROAS</th>
+                <th class="px-4 py-3 text-right">CPM</th>
+                <th class="px-4 py-3 text-right">CPC</th>
+                <th class="px-4 py-3 text-right">CPA</th>
+              </tr>
+            </thead>
+            <tbody id="campaignTable">
+              <!-- 動態產生 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- 頁籤 2：素材表現 -->
+      <div id="tab-creative" class="tab-content">
+        <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+          <span class="text-sm text-gray-500">1 - 20 / 60</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="table-header">
+                <th class="px-4 py-3 text-left">素材</th>
+                <th class="px-4 py-3 text-center">格式</th>
+                <th class="px-4 py-3 text-center">狀態</th>
+                <th class="px-4 py-3 text-right">曝光</th>
+                <th class="px-4 py-3 text-right">觀看</th>
+                <th class="px-4 py-3 text-right">點擊</th>
+                <th class="px-4 py-3 text-right">點擊率</th>
+                <th class="px-4 py-3 text-right">CPC</th>
+                <th class="px-4 py-3 text-right">費用</th>
+                <th class="px-4 py-3 text-right">轉換</th>
+                <th class="px-4 py-3 text-right">轉換價值</th>
+                <th class="px-4 py-3 text-right">轉換率</th>
+                <th class="px-4 py-3 text-right">CPA</th>
+                <th class="px-4 py-3 text-right">ROAS</th>
+              </tr>
+            </thead>
+            <tbody id="creativeTable">
+              <!-- 動態產生 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ========== 假資料 (參考 Looker 報表) ==========
+    const MOCK_DAILY_DATA = [
+      { date: "2026年5月22日", impressions: 167054, clicks: 922, ctr: "0.55%", conversions: 15, conversionRate: "1.63%", cost: 25694, value: 63523, roas: 2.47, cpm: 153.81, cpc: 27.87, cpa: 1712.93 },
+      { date: "2026年5月23日", impressions: 74589, clicks: 498, ctr: "0.67%", conversions: 17, conversionRate: "3.41%", cost: 12663, value: 67331, roas: 5.32, cpm: 169.77, cpc: 25.43, cpa: 744.88 },
+      { date: "2026年5月24日", impressions: 105659, clicks: 682, ctr: "0.65%", conversions: 28, conversionRate: "4.11%", cost: 16818, value: 106505, roas: 6.33, cpm: 159.17, cpc: 24.66, cpa: 600.64 },
+      { date: "2026年5月25日", impressions: 175978, clicks: 708, ctr: "0.40%", conversions: 19, conversionRate: "2.68%", cost: 25620, value: 70247, roas: 2.74, cpm: 145.59, cpc: 36.19, cpa: 1348.42 },
+      { date: "2026年5月26日", impressions: 165747, clicks: 781, ctr: "0.47%", conversions: 22, conversionRate: "2.82%", cost: 25453, value: 102671, roas: 4.03, cpm: 153.57, cpc: 32.59, cpa: 1156.95 },
+      { date: "2026年5月27日", impressions: 121906, clicks: 578, ctr: "0.47%", conversions: 24, conversionRate: "4.15%", cost: 19217, value: 97165, roas: 5.06, cpm: 157.64, cpc: 33.25, cpa: 800.71 },
+    ];
+
+    const MOCK_CAMPAIGNS = [
+      { name: "FB｜轉換｜RT｜RT-3", impressions: 5996, clicks: 35, ctr: "0.58%", conversions: 4, conversionRate: "11.43%", cost: 2245, value: 24862, roas: 11.07, cpm: 374.42, cpc: 64.14, cpa: 561.25 },
+      { name: "FB｜轉換｜KOL｜混血樂樂與太陽妹妹-A｜260724", impressions: 5830, clicks: 5, ctr: "0.09%", conversions: 1, conversionRate: "20.00%", cost: 702, value: 5780, roas: 8.23, cpm: 120.41, cpc: 140.40, cpa: 702 },
+      { name: "FB｜轉換｜KOL｜主婦嬌阿伶-C｜260513", impressions: 20644, clicks: 156, ctr: "0.76%", conversions: 7, conversionRate: "4.49%", cost: 3951, value: 29549, roas: 7.48, cpm: 191.39, cpc: 25.33, cpa: 564.43 },
+      { name: "FB｜轉換｜KOL｜馬大元｜261020", impressions: 19544, clicks: 132, ctr: "0.68%", conversions: 7, conversionRate: "5.30%", cost: 3918, value: 28010, roas: 7.15, cpm: 200.47, cpc: 29.68, cpa: 559.71 },
+      { name: "FB｜轉換｜RT｜", impressions: 123534, clicks: 534, ctr: "0.43%", conversions: 24, conversionRate: "4.49%", cost: 13512, value: 88945, roas: 6.58, cpm: 109.38, cpc: 25.30, cpa: 563 },
+      { name: "FB｜轉換｜KOL｜跟著四寶媽環島旅行", impressions: 4611, clicks: 10, ctr: "0.22%", conversions: 1, conversionRate: "10.00%", cost: 704, value: 4523, roas: 6.42, cpm: 152.68, cpc: 70.40, cpa: 704 },
+      { name: "FB｜轉換｜常態｜ASC｜引線木偶-B｜260429", impressions: 22246, clicks: 67, ctr: "0.30%", conversions: 5, conversionRate: "7.46%", cost: 3765, value: 18828, roas: 5.00, cpm: 169.24, cpc: 56.19, cpa: 753 },
+      { name: "FB｜轉換｜興趣｜", impressions: 160759, clicks: 1250, ctr: "0.78%", conversions: 24, conversionRate: "1.92%", cost: 22116, value: 107712, roas: 4.87, cpm: 137.57, cpc: 17.69, cpa: 921.50 },
+      { name: "FB｜轉換｜KOL｜塔塔懷特-A｜260724", impressions: 13636, clicks: 12, ctr: "0.09%", conversions: 2, conversionRate: "16.67%", cost: 2059, value: 10027, roas: 4.87, cpm: 151.00, cpc: 171.58, cpa: 1029.50 },
+      { name: "FB｜轉換｜KOL｜狄志為｜260403", impressions: 42890, clicks: 186, ctr: "0.43%", conversions: 8, conversionRate: "4.30%", cost: 6450, value: 28660, roas: 4.44, cpm: 150.39, cpc: 34.68, cpa: 806.25 },
+    ];
+
+    // ========== 素材假資料 (參考 Looker 素材分析) ==========
+    const MOCK_CREATIVES = [
+      { name: "單圖｜常態｜全口味｜口味多元｜251003", format: "image", status: "active", impressions: 764196, views: 44269, clicks: 3666, ctr: "0.48%", cpc: 32.46, cost: 118985, conversions: 124, value: 519541, conversionRate: "3.38%", cpa: 960, roas: 4.37 },
+      { name: "貼文｜KOL｜轉大人滴雞精｜狄志為-2｜260519", format: "post", status: "active", impressions: 65103, views: 9514, clicks: 425, ctr: "0.65%", cpc: 26.82, cost: 11397, conversions: 10, value: 57978, conversionRate: "2.35%", cpa: 1140, roas: 5.09 },
+      { name: "貼文｜KOL｜全口味｜馬家四公子｜260417", format: "post", status: "active", impressions: 29222, views: 8397, clicks: 221, ctr: "0.76%", cpc: 28.85, cost: 6376, conversions: 4, value: 13971, conversionRate: "1.81%", cpa: 1594, roas: 2.19 },
+      { name: "貼文｜KOL｜九尾草滴雞精｜愛蛙小姐-A｜250818", format: "post", status: "active", impressions: 36990, views: 3274, clicks: 215, ctr: "0.58%", cpc: 26.16, cost: 5625, conversions: 9, value: 18722, conversionRate: "4.19%", cpa: 625, roas: 3.33 },
+      { name: "貼文｜KOL｜轉大人滴雞精｜狄志為｜260520", format: "post", status: "active", impressions: 83459, views: 0, clicks: 200, ctr: "0.24%", cpc: 66.04, cost: 13208, conversions: 8, value: 29241, conversionRate: "4.00%", cpa: 1651, roas: 2.21 },
+      { name: "單圖｜母親節｜滴雞精｜美秀6050｜251201", format: "image", status: "active", impressions: 25257, views: 0, clicks: 180, ctr: "0.71%", cpc: 19.43, cost: 3498, conversions: 4, value: 20930, conversionRate: "2.22%", cpa: 875, roas: 5.98 },
+      { name: "貼文｜KOL｜全口味｜我是薇薇薇薇是我｜250801", format: "post", status: "active", impressions: 76134, views: 0, clicks: 174, ctr: "0.23%", cpc: 67.84, cost: 11804, conversions: 12, value: 45048, conversionRate: "6.90%", cpa: 984, roas: 3.82 },
+      { name: "單圖｜常態｜定期購｜省超大｜260520-260601", format: "image", status: "active", impressions: 6938, views: 764, clicks: 166, ctr: "2.39%", cpc: 5.12, cost: 850, conversions: 1, value: 4180, conversionRate: "0.60%", cpa: 850, roas: 4.92 },
+    ];
+
+    // ========== 狀態管理 ==========
+    let currentAccount = null;
+    let authorizedAccounts = [];
+    let trendChart = null;
+
+    // ========== 格式化函數 ==========
+    function formatNumber(num) {
+      return num.toLocaleString('zh-TW');
+    }
+
+    function formatCurrency(num) {
+      return '$' + num.toLocaleString('zh-TW');
+    }
+
+    function getRoasClass(roas) {
+      if (roas >= 5) return 'roas-good';
+      if (roas >= 3) return 'roas-medium';
+      return 'roas-bad';
+    }
+
+    function getFormatClass(format) {
+      if (format === 'post') return 'format-post';
+      if (format === 'image') return 'format-image';
+      if (format === 'video') return 'format-video';
+      return '';
+    }
+
+    function getFormatLabel(format) {
+      if (format === 'post') return '貼文';
+      if (format === 'image') return '單圖';
+      if (format === 'video') return '影片';
+      return format;
+    }
+
+    // ========== 頁籤切換 ==========
+    function switchTab(tab) {
+      // 更新頁籤按鈕狀態
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      // 更新頁籤內容
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      document.getElementById('tab-' + tab).classList.add('active');
+    }
+
+    // ========== 初始化 ==========
+    function init() {
+      const accounts = localStorage.getItem('authorizedAccounts');
+      const user = localStorage.getItem('userInfo');
+      
+      if (!accounts) {
+        // 沒有授權資料，直接用假資料顯示
+        authorizedAccounts = [{ id: 'demo', name: 'Demo 帳號', icon: '📊' }];
+      } else {
+        authorizedAccounts = JSON.parse(accounts);
+      }
+      
+      // 設定帳號切換器
+      renderAccountChips();
+      
+      // 選擇第一個帳號
+      if (authorizedAccounts.length > 0) {
+        selectAccount(authorizedAccounts[0].id);
+      }
+    }
+
+    function renderAccountChips() {
+      const container = document.getElementById('accountChips');
+      container.innerHTML = authorizedAccounts.map(account => `
+        <button class="account-chip ${currentAccount === account.id ? 'active' : ''}" onclick="selectAccount('${account.id}')">
+          ${account.icon} ${account.name}
+        </button>
+      `).join('');
+    }
+
+    function selectAccount(accountId) {
+      currentAccount = accountId;
+      renderAccountChips();
+      updateReport();
+    }
+
+    // ========== 報表更新 ==========
+    function updateReport() {
+      updateDailyTable();
+      updateCampaignTable();
+      updateCreativeTable();
+      updateTrendChart();
+    }
+
+    function updateDailyTable() {
+      const tableBody = document.getElementById('dailyTable');
+      tableBody.innerHTML = MOCK_DAILY_DATA.map(row => `
+        <tr class="table-row border-b border-gray-50">
+          <td class="px-4 py-3 text-gray-600">${row.date}</td>
+          <td class="px-4 py-3 text-right">${formatNumber(row.impressions)}</td>
+          <td class="px-4 py-3 text-right">${formatNumber(row.clicks)}</td>
+          <td class="px-4 py-3 text-right">${row.ctr}</td>
+          <td class="px-4 py-3 text-right font-medium">${row.conversions}</td>
+          <td class="px-4 py-3 text-right">${row.conversionRate}</td>
+          <td class="px-4 py-3 text-right">${formatCurrency(row.cost)}</td>
+          <td class="px-4 py-3 text-right">${formatCurrency(row.value)}</td>
+          <td class="px-4 py-3 text-right ${getRoasClass(row.roas)}">${row.roas.toFixed(2)}</td>
+          <td class="px-4 py-3 text-right">${row.cpm.toFixed(2)}</td>
+          <td class="px-4 py-3 text-right">${row.cpc.toFixed(2)}</td>
+          <td class="px-4 py-3 text-right">${formatCurrency(row.cpa.toFixed(2))}</td>
+        </tr>
+      `).join('');
+      
+      // 總計行
+      const total = {
+        impressions: MOCK_DAILY_DATA.reduce((s, r) => s + r.impressions, 0),
+        clicks: MOCK_DAILY_DATA.reduce((s, r) => s + r.clicks, 0),
+        conversions: MOCK_DAILY_DATA.reduce((s, r) => s + r.conversions, 0),
+        cost: MOCK_DAILY_DATA.reduce((s, r) => s + r.cost, 0),
+        value: MOCK_DAILY_DATA.reduce((s, r) => s + r.value, 0),
+      };
+      const totalCtr = ((total.clicks / total.impressions) * 100).toFixed(2);
+      const totalConversionRate = ((total.conversions / total.clicks) * 100).toFixed(2);
+      const totalRoas = (total.value / total.cost).toFixed(2);
+      const totalCpm = (total.cost / total.impressions * 1000).toFixed(2);
+      const totalCpc = (total.cost / total.clicks).toFixed(2);
+      const totalCpa = (total.cost / total.conversions).toFixed(2);
+      
+      tableBody.innerHTML += `
+        <tr class="bg-gray-50 font-semibold">
+          <td class="px-4 py-3">總計</td>
+          <td class="px-4 py-3 text-right">${formatNumber(total.impressions)}</td>
+          <td class="px-4 py-3 text-right">${formatNumber(total.clicks)}</td>
+          <td class="px-4 py-3 text-right">${totalCtr}%</td>
+          <td class="px-4 py-3 text-right">${total.conversions}</td>
+          <td class="px-4 py-3 text-right">${totalConversionRate}%</td>
+          <td class="px-4 py-3 text-right">${formatCurrency(total.cost)}</td>
+          <td class="px-4 py-3 text-right">${formatCurrency(total.value)}</td>
+          <td class="px-4 py-3 text-right ${getRoasClass(totalRoas)}">${totalRoas}</td>
+          <td class="px-4 py-3 text-right">${totalCpm}</td>
+          <td class="px-4 py-3 text-right">${totalCpc}</td>
+          <td class="px-4 py-3 text-right">${formatCurrency(totalCpa)}</td>
+        </tr>
+      `;
+    }
+
+    function updateCampaignTable() {
+      const tableBody = document.getElementById('campaignTable');
+      tableBody.innerHTML = MOCK_CAMPAIGNS.map((row, idx) => `
+        <tr class="table-row border-b border-gray-50">
+          <td class="px-4 py-3">
+            <span class="text-gray-400 mr-2">${idx + 1}.</span>
+            <span class="text-gray-800">${row.name}</span>
+          </td>
+          <td class="px-4 py-3 text-right">${formatNumber(row.impressions)}</td>
+          <td class="px-4 py-3 text-right">${formatNumber(row.clicks)}</td>
+          <td class="px-4 py-3 text-right">${row.ctr}</td>
+          <td class="px-4 py-3 text-right font-medium">${row.conversions}</td>
+          <td class="px-4 py-3 text-right">${row.conversionRate}</td>
+          <td class="px-4 py-3 text-right">${formatCurrency(row.cost)}</td>
+          <td class="px-4 py-3 text-right">${formatCurrency(row.value)}</td>
+          <td class="px-4 py-3 text-right ${getRoasClass(row.roas)}">${row.roas.toFixed(2)}</td>
+          <td class="px-4 py-3 text-right">${row.cpm.toFixed(2)}</td>
+          <td class="px-4 py-3 text-right">${row.cpc.toFixed(2)}</td>
+          <td class="px-4 py-3 text-right">${formatCurrency(row.cpa.toFixed(2))}</td>
+        </tr>
+      `).join('');
+    }
+
+    function updateCreativeTable() {
+      const tableBody = document.getElementById('creativeTable');
+      tableBody.innerHTML = MOCK_CREATIVES.map((row, idx) => `
+        <tr class="table-row border-b border-gray-50">
+          <td class="px-4 py-3">
+            <span class="text-gray-400 mr-2">${idx + 1}.</span>
+            <span class="text-gray-800">${row.name}</span>
+          </td>
+          <td class="px-4 py-3 text-center">
+            <span class="format-badge ${getFormatClass(row.format)}">${getFormatLabel(row.format)}</span>
+          </td>
+          <td class="px-4 py-3 text-center">
+            <span class="status-badge status-active">
+              <span class="w-2 h-2 rounded-full bg-green-500"></span>
+              進行中
+            </span>
+          </td>
+          <td class="px-4 py-3 text-right">${formatNumber(row.impressions)}</td>
+          <td class="px-4 py-3 text-right">${formatNumber(row.views)}</td>
+          <td class="px-4 py-3 text-right">${formatNumber(row.clicks)}</td>
+          <td class="px-4 py-3 text-right">${row.ctr}</td>
+          <td class="px-4 py-3 text-right">${formatCurrency(row.cpc.toFixed(2))}</td>
+          <td class="px-4 py-3 text-right">${formatCurrency(row.cost)}</td>
+          <td class="px-4 py-3 text-right font-medium">${row.conversions}</td>
+          <td class="px-4 py-3 text-right">${formatCurrency(row.value)}</td>
+          <td class="px-4 py-3 text-right">${row.conversionRate}</td>
+          <td class="px-4 py-3 text-right">${formatCurrency(row.cpa)}</td>
+          <td class="px-4 py-3 text-right ${getRoasClass(row.roas)}">${row.roas.toFixed(2)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function updateTrendChart() {
+      const labels = MOCK_DAILY_DATA.map(d => d.date.replace('2026年5月', '05/').replace('日', ''));
+      const impressionsData = MOCK_DAILY_DATA.map(d => d.impressions);
+      const clicksData = MOCK_DAILY_DATA.map(d => d.clicks);
+      
+      if (trendChart) trendChart.destroy();
+      trendChart = new Chart(document.getElementById('trendChart'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: '曝光',
+              data: impressionsData,
+              backgroundColor: 'rgba(66, 133, 244, 0.8)',
+              borderRadius: 4,
+            },
+            {
+              label: '點擊',
+              data: clicksData,
+              backgroundColor: 'rgba(251, 188, 5, 0.8)',
+              borderRadius: 4,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { usePointStyle: true, padding: 20 }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { 
+                callback: v => v >= 1000 ? (v/1000) + 'K' : v 
+              }
+            },
+            x: {
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+      
+      // 總計行
+      const total = {
+        impressions: MOCK_CREATIVES.reduce((s, r) => s + r.impressions, 0),
+        views: MOCK_CREATIVES.reduce((s, r) => s + r.views, 0),
+        clicks: MOCK_CREATIVES.reduce((s, r) => s + r.clicks, 0),
+        cost: MOCK_CREATIVES.reduce((s, r) => s + r.cost, 0),
+        conversions: MOCK_CREATIVES.reduce((s, r) => s + r.conversions, 0),
+        value: MOCK_CREATIVES.reduce((s, r) => s + r.value, 0),
+      };
+      const labels = MOCK_DAILY_DATA.map(d => d.date.replace('2026年5月', '05/').replace('日', ''));
+      const impressionsData = MOCK_DAILY_DATA.map(d => d.impressions);
+      const clicksData = MOCK_DAILY_DATA.map(d => d.clicks);
+      
+      if (trendChart) trendChart.destroy();
+      trendChart = new Chart(document.getElementById('trendChart'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: '曝光',
+              data: impressionsData,
+              backgroundColor: 'rgba(66, 133, 244, 0.8)',
+              borderRadius: 4,
+            },
+            {
+              label: '點擊',
+              data: clicksData,
+              backgroundColor: 'rgba(251, 188, 5, 0.8)',
+              borderRadius: 4,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { usePointStyle: true, padding: 20 }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { 
+                callback: v => v >= 1000 ? (v/1000) + 'K' : v 
+              }
+            },
+            x: {
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    // ========== 導航 ==========
+    function goToAuth() {
+      window.location.href = 'index.html';
+    }
+
+    function handleDisconnect() {
+      localStorage.removeItem('authorizedAccounts');
+      localStorage.removeItem('userInfo');
+      window.location.href = 'index.html';
+    }
+
+    // ========== 啟動 ==========
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
