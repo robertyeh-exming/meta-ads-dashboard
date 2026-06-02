@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meta 廣告報表</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    .glass {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .glass-dark {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 24px;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s ease;
+    }
+    
+    .kpi-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+      border-radius: 20px;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      border-radius: 20px 20px 0 0;
+    }
+    
+    .kpi-spend::before { background: linear-gradient(90deg, #f093fb, #f5576c); }
+    .kpi-impressions::before { background: linear-gradient(90deg, #4facfe, #00f2fe); }
+    .kpi-clicks::before { background: linear-gradient(90deg, #43e97b, #38f9d7); }
+    .kpi-ctr::before { background: linear-gradient(90deg, #fa709a, #fee140); }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .table-row {
+      transition: all 0.2s ease;
+    }
+    
+    .table-row:hover {
+      background: rgba(102, 126, 234, 0.05);
+    }
+    
+    .status-active {
+      background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
+      color: #155724;
+    }
+    
+    .status-paused {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      color: #6c757d;
+    }
+    
+    .chart-container {
+      position: relative;
+      height: 250px;
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .account-chip {
+      background: linear-gradient(135deg, rgba(24,119,242,0.15) 0%, rgba(24,119,242,0.05) 100%);
+      border: 1px solid rgba(24, 119, 242, 0.3);
+      border-radius: 12px;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .account-chip:hover {
+      background: linear-gradient(135deg, rgba(24,119,242,0.25) 0%, rgba(24,119,242,0.1) 100%);
+    }
+    
+    .account-chip.active {
+      background: linear-gradient(135deg, #1877f2 0%, #0d65d9 100%);
+      color: white;
+      border-color: transparent;
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+  <div id="app" class="max-w-6xl mx-auto">
+    
+    <!-- Header -->
+    <div class="glass rounded-2xl p-4 mb-6 flex items-center justify-between flex-wrap gap-4">
+      <div class="flex items-center gap-4">
+        <img id="userAvatar" src="" class="w-12 h-12 rounded-full shadow-lg ring-4 ring-white">
+        <div>
+          <div id="userName" class="font-bold text-white text-lg"></div>
+          <div class="text-white/70 text-sm">Meta 廣告報表</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="goToAuth()" class="px-4 py-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-all text-sm font-medium">
+          管理帳號
+        </button>
+        <button onclick="handleDisconnect()" class="px-4 py-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-all text-sm font-medium">
+          登出
+        </button>
+      </div>
+    </div>
+
+    <!-- 帳號切換 -->
+    <div id="accountSwitcher" class="glass-dark rounded-2xl p-4 mb-6">
+      <div class="flex items-center gap-3 overflow-x-auto pb-2">
+        <span class="text-white font-medium whitespace-nowrap">📊 帳號：</span>
+        <div id="accountChips" class="flex gap-2">
+          <!-- 動態產生 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 日期範圍 -->
+    <div class="glass-dark rounded-2xl p-4 mb-6 flex items-center justify-between flex-wrap gap-4">
+      <div class="flex items-center gap-4">
+        <span class="text-white font-medium">📅 日期範圍</span>
+        <select id="dateRange" onchange="updateReport()" class="bg-white/20 text-white border-0 rounded-xl px-4 py-2 focus:ring-2 focus:ring-white/50">
+          <option value="7" class="text-gray-800">最近 7 天</option>
+          <option value="14" class="text-gray-800">最近 14 天</option>
+          <option value="30" selected class="text-gray-800">最近 30 天</option>
+        </select>
+      </div>
+      <button onclick="refreshData()" class="bg-white text-purple-600 px-5 py-2 rounded-xl font-semibold hover:bg-white/90 transition-all flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        更新數據
+      </button>
+    </div>
+
+    <!-- KPI 卡片 -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="kpi-card kpi-spend">
+        <div class="flex items-center gap-2 text-gray-500 text-sm mb-2">
+          <span>💰</span> 總花費
+        </div>
+        <div id="kpiSpend" class="text-3xl font-bold text-gray-800">$0</div>
+        <div id="kpiSpendChange" class="text-sm mt-1 text-green-500 font-medium">--</div>
+      </div>
+      <div class="kpi-card kpi-impressions">
+        <div class="flex items-center gap-2 text-gray-500 text-sm mb-2">
+          <span>👁️</span> 總曝光
+        </div>
+        <div id="kpiImpressions" class="text-3xl font-bold text-gray-800">0</div>
+        <div id="kpiImpressionsChange" class="text-sm mt-1 text-green-500 font-medium">--</div>
+      </div>
+      <div class="kpi-card kpi-clicks">
+        <div class="flex items-center gap-2 text-gray-500 text-sm mb-2">
+          <span>🖱️</span> 總點擊
+        </div>
+        <div id="kpiClicks" class="text-3xl font-bold text-gray-800">0</div>
+        <div id="kpiClicksChange" class="text-sm mt-1 text-green-500 font-medium">--</div>
+      </div>
+      <div class="kpi-card kpi-ctr">
+        <div class="flex items-center gap-2 text-gray-500 text-sm mb-2">
+          <span>📊</span> 平均 CTR
+        </div>
+        <div id="kpiCtr" class="text-3xl font-bold text-gray-800">0%</div>
+        <div id="kpiCtrChange" class="text-sm mt-1 text-green-500 font-medium">--</div>
+      </div>
+    </div>
+
+    <!-- 圖表區域 -->
+    <div class="grid lg:grid-cols-2 gap-6 mb-6">
+      <div class="card p-6">
+        <h3 class="font-bold gradient-text mb-4 text-lg">📈 花費趨勢</h3>
+        <div class="chart-container">
+          <canvas id="spendChart"></canvas>
+        </div>
+      </div>
+      <div class="card p-6">
+        <h3 class="font-bold gradient-text mb-4 text-lg">🎯 CTR 趨勢</h3>
+        <div class="chart-container">
+          <canvas id="ctrChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 廣告活動表格 -->
+    <div class="card p-6">
+      <h3 class="font-bold gradient-text mb-4 text-lg">📋 廣告活動明細</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="border-b-2 border-gray-100">
+              <th class="pb-4 text-left text-gray-500 font-semibold">廣告活動</th>
+              <th class="pb-4 text-right text-gray-500 font-semibold">花費</th>
+              <th class="pb-4 text-right text-gray-500 font-semibold">曝光</th>
+              <th class="pb-4 text-right text-gray-500 font-semibold">點擊</th>
+              <th class="pb-4 text-right text-gray-500 font-semibold">CTR</th>
+              <th class="pb-4 text-right text-gray-500 font-semibold">CPC</th>
+              <th class="pb-4 text-center text-gray-500 font-semibold">狀態</th>
+            </tr>
+          </thead>
+          <tbody id="campaignTable">
+            <!-- 動態產生 -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ========== 假資料 ==========
+    const MOCK_CAMPAIGNS = [
+      { name: "春季促銷活動", spend: 12500, impressions: 250000, clicks: 3500, status: "active" },
+      { name: "品牌曝光計畫", spend: 8200, impressions: 420000, clicks: 2800, status: "active" },
+      { name: "新品上市推廣", spend: 15800, impressions: 380000, clicks: 4200, status: "active" },
+      { name: "週年慶活動", spend: 5000, impressions: 120000, clicks: 1100, status: "paused" },
+      { name: "會員招募", spend: 3200, impressions: 85000, clicks: 920, status: "active" },
+      { name: "夏季特賣", spend: 22000, impressions: 520000, clicks: 5800, status: "active" },
+      { name: "節慶行銷", spend: 9500, impressions: 180000, clicks: 2100, status: "paused" },
+    ];
+
+    const MOCK_TREND_DATA = {
+      labels: ["1日", "5日", "10日", "15日", "20日", "25日", "30日"],
+      spend: [850, 1200, 980, 1450, 1100, 1680, 1340],
+      ctr: [1.2, 1.8, 1.5, 2.1, 1.9, 2.3, 1.7],
+    };
+
+    // ========== 狀態管理 ==========
+    let currentAccount = null;
+    let authorizedAccounts = [];
+    let spendChart = null;
+    let ctrChart = null;
+
+    // ========== 格式化函數 ==========
+    function formatNumber(num) {
+      if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+      return num.toLocaleString();
+    }
+
+    function formatCurrency(num) {
+      return '$' + num.toLocaleString();
+    }
+
+    // ========== 初始化 ==========
+    function init() {
+      const accounts = localStorage.getItem('authorizedAccounts');
+      const user = localStorage.getItem('userInfo');
+      
+      if (!accounts) {
+        // 未授權，跳回連接頁
+        window.location.href = 'index.html';
+        return;
+      }
+      
+      authorizedAccounts = JSON.parse(accounts);
+      const userInfo = JSON.parse(user);
+      
+      // 設定使用者資訊
+      document.getElementById('userName').textContent = userInfo.name;
+      document.getElementById('userAvatar').src = userInfo.avatar;
+      
+      // 設定帳號切換器
+      renderAccountChips();
+      
+      // 選擇第一個帳號
+      if (authorizedAccounts.length > 0) {
+        selectAccount(authorizedAccounts[0].id);
+      }
+    }
+
+    function renderAccountChips() {
+      const container = document.getElementById('accountChips');
+      container.innerHTML = authorizedAccounts.map(account => `
+        <button class="account-chip ${currentAccount === account.id ? 'active' : ''}" data-id="${account.id}" onclick="selectAccount('${account.id}')">
+          ${account.icon} ${account.name}
+        </button>
+      `).join('');
+    }
+
+    function selectAccount(accountId) {
+      currentAccount = accountId;
+      renderAccountChips();
+      updateReport();
+    }
+
+    // ========== 報表更新 ==========
+    function updateReport() {
+      // 更新 KPI
+      const totalSpend = MOCK_CAMPAIGNS.reduce((sum, c) => sum + c.spend, 0);
+      const totalImpressions = MOCK_CAMPAIGNS.reduce((sum, c) => sum + c.impressions, 0);
+      const totalClicks = MOCK_CAMPAIGNS.reduce((sum, c) => sum + c.clicks, 0);
+      const avgCtr = ((totalClicks / totalImpressions) * 100).toFixed(2);
+      
+      document.getElementById('kpiSpend').textContent = formatCurrency(totalSpend);
+      document.getElementById('kpiImpressions').textContent = formatNumber(totalImpressions);
+      document.getElementById('kpiClicks').textContent = formatNumber(totalClicks);
+      document.getElementById('kpiCtr').textContent = avgCtr + '%';
+      
+      // 更新表格
+      const tableBody = document.getElementById('campaignTable');
+      tableBody.innerHTML = MOCK_CAMPAIGNS.map(campaign => {
+        const ctr = ((campaign.clicks / campaign.impressions) * 100).toFixed(2);
+        const cpc = (campaign.spend / campaign.clicks).toFixed(2);
+        return `
+          <tr class="table-row border-b border-gray-50">
+            <td class="py-4">
+              <div class="font-semibold text-gray-800">${campaign.name}</div>
+            </td>
+            <td class="py-4 text-right font-medium">${formatCurrency(campaign.spend)}</td>
+            <td class="py-4 text-right text-gray-600">${formatNumber(campaign.impressions)}</td>
+            <td class="py-4 text-right text-gray-600">${formatNumber(campaign.clicks)}</td>
+            <td class="py-4 text-right font-medium text-purple-600">${ctr}%</td>
+            <td class="py-4 text-right text-gray-600">$${cpc}</td>
+            <td class="py-4 text-center">
+              <span class="px-3 py-1 rounded-full text-xs font-semibold ${campaign.status === 'active' ? 'status-active' : 'status-paused'}">
+                ${campaign.status === 'active' ? '執行中' : '已暫停'}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      
+      // 更新圖表
+      updateCharts();
+    }
+
+    function updateCharts() {
+      const labels = MOCK_TREND_DATA.labels;
+      const spendData = MOCK_TREND_DATA.spend;
+      const ctrData = MOCK_TREND_DATA.ctr;
+      
+      // 花費趨勢圖
+      if (spendChart) spendChart.destroy();
+      spendChart = new Chart(document.getElementById('spendChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '花費',
+            data: spendData,
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#667eea',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { callback: v => '$' + v }
+            },
+            x: {
+              grid: { display: false }
+            }
+          }
+        }
+      });
+      
+      // CTR 趨勢圖
+      if (ctrChart) ctrChart.destroy();
+      ctrChart = new Chart(document.getElementById('ctrChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'CTR',
+            data: ctrData,
+            borderColor: '#f093fb',
+            backgroundColor: 'rgba(240, 147, 251, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#f093fb',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { callback: v => v + '%' }
+            },
+            x: {
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    function refreshData() {
+      // 模擬刷新動畫
+      document.querySelectorAll('.kpi-card').forEach(card => {
+        card.style.opacity = '0.5';
+        setTimeout(() => card.style.opacity = '1', 300);
+      });
+      updateReport();
+    }
+
+    // ========== 導航 ==========
+    function goToAuth() {
+      window.location.href = 'index.html';
+    }
+
+    function handleDisconnect() {
+      localStorage.removeItem('authorizedAccounts');
+      localStorage.removeItem('userInfo');
+      window.location.href = 'index.html';
+    }
+
+    // ========== 啟動 ==========
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
