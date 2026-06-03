@@ -153,6 +153,7 @@
             <thead>
               <tr class="table-header">
                 <th class="px-4 py-3 text-left">素材</th>
+                <th class="px-4 py-3 text-center">縮圖</th>
                 <th class="px-4 py-3 text-center">格式</th>
                 <th class="px-4 py-3 text-right">曝光</th>
                 <th class="px-4 py-3 text-right">點擊</th>
@@ -193,11 +194,11 @@
     ];
 
     const MOCK_CREATIVES = [
-      { name: "單圖｜常態｜全口味｜口味多元", format: "image", impressions: 764196, clicks: 3666, cost: 118985, roas: 4.37 },
-      { name: "貼文｜KOL｜轉大人滴雞精｜狄志為", format: "post", impressions: 65103, clicks: 425, cost: 11397, roas: 5.09 },
-      { name: "貼文｜KOL｜全口味｜馬家四公子", format: "post", impressions: 29222, clicks: 221, cost: 6376, roas: 2.19 },
-      { name: "單圖｜母親節｜滴雞精｜美秀", format: "image", impressions: 25257, clicks: 180, cost: 3498, roas: 5.98 },
-      { name: "影片｜KOL｜品牌故事", format: "video", impressions: 50000, clicks: 300, cost: 8000, roas: 3.50 },
+      { name: "單圖｜常態｜全口味｜口味多元", format: "image", thumbnail: "https://picsum.photos/seed/creative1/120/120", impressions: 764196, clicks: 3666, cost: 118985, roas: 4.37 },
+      { name: "貼文｜KOL｜轉大人滴雞精｜狄志為", format: "post", thumbnail: "https://picsum.photos/seed/creative2/120/120", impressions: 65103, clicks: 425, cost: 11397, roas: 5.09 },
+      { name: "貼文｜KOL｜全口味｜馬家四公子", format: "post", thumbnail: "https://picsum.photos/seed/creative3/120/120", impressions: 29222, clicks: 221, cost: 6376, roas: 2.19 },
+      { name: "單圖｜母親節｜滴雞精｜美秀", format: "image", thumbnail: "https://picsum.photos/seed/creative4/120/120", impressions: 25257, clicks: 180, cost: 3498, roas: 5.98 },
+      { name: "影片｜KOL｜品牌故事", format: "video", thumbnail: "https://picsum.photos/seed/creative5/120/120", impressions: 50000, clicks: 300, cost: 8000, roas: 3.50 },
     ];
 
     let trendChart = null;
@@ -290,6 +291,7 @@
       tbody.innerHTML = MOCK_CREATIVES.map((r, i) => `
         <tr class="table-row border-b">
           <td class="px-4 py-3">${i+1}. ${r.name}</td>
+          <td class="px-4 py-3 text-center"><img src="${r.thumbnail}" alt="缩图" class="w-10 h-10 rounded object-cover inline-block"></td>
           <td class="px-4 py-3 text-center"><span class="format-badge ${fmtClass(r.format)}">${fmtLabel(r.format)}</span></td>
           <td class="px-4 py-3 text-right">${fmt(r.impressions)}</td>
           <td class="px-4 py-3 text-right">${fmt(r.clicks)}</td>
